@@ -254,3 +254,8 @@ def place_order(contract, order, hostname=default_hostname,
 
     return app.order_status
 
+def get_log_return(stock): #takes in pandas dataframe
+    stock['Log_Price'] = stock['Close'].apply(lambda x: math.log(x))
+    stock['Log_Diff'] = stock['Log_Price'].diff()
+
+
