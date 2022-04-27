@@ -4,6 +4,7 @@ import threading
 import time
 from datetime import datetime
 
+
 # If you want different default values, configure it here.
 default_hostname = '127.0.0.1'
 default_port = 7497
@@ -257,5 +258,51 @@ def place_order(contract, order, hostname=default_hostname,
 def get_log_return(stock): #takes in pandas dataframe
     stock['Log_Price'] = stock['Close'].apply(lambda x: math.log(x))
     stock['Log_Diff'] = stock['Log_Price'].diff()
+    return stock
+
+def entry_signal(stock1, stock2, position_taken, threshold, allocation): # takes in pd dataframe # position taken is a boolean yes or no
+    stock1_log = get_log_return(stock1)
+    stock2_log = get_log_return(stock2)
+    stock1_window = stock1_log['Log_Price'][-91:-1]
+    stock2_window = stock2_log['Log_Price'][-91:-1]
+    stock1_window = sm.add_constant(stock1_window) # need to import statsmodels as sm
+    model = sm.OLS(stock2_window, stock1_window) #OLS(y,x)
+    results = model.fit()
+    sigma = math.sqrt(results.mse_resid)  # standard deviation of the residual
+    slope = results.params[1]
+    intercept = results.params[0]
+    res = results.resid  # regression residual mean of res =0 by definition
+    zscore_1_2 = res / sigma
+
+    spread = pd.concat([res, zscore_1_2], axis=1)
+    spread = pd.concat([stock2_window, spread], axis=1)
+    spread = pd.concat([stock1_window, spread], axis=1)
+    spread.columns = ['const', 'stock1_log', 'stock2_log', 'residual', 'zscore']
+    spread['date'] = stock1['Date']
+
+    stock1_wt = slope/(1+slope)
+    stock2_wt =  1/(1+slope)
+
+    if position_taken == 0 and spread['zscore'].values[-1] > sigma *threshold and spread['zscore'].values[-2] < sigma * threshold:
+        stock1_order = ['BUY', (stock1_wt * allocation) ]
+        stock2_order = ['SELL', (stock2_wt * allocation)]
+        position_taken = 1 # Long Spread
+
+    elif position_taken == 0 and spread['zscore'].values[-1] < -sigma *threshold and spread['zscore'].values[-2] > -sigma * threshold:
+        stock1_order = ['SELL', (stock1_wt * allocation)]
+        stock2_order = ['BUY', (stock2_wt * allocation)]
+        position_taken = -1 # Short Spread
+    else:
+        stock1_order = None
+        stock2_order = None
+        position_taken = 0 # represents that there is no position taken
 
 
+    return [stock1_order,stock2_order, position_taken]
+
+
+def order(stock1_order, stock2_order):
+
+
+
+def exit_signal()
