@@ -3,7 +3,7 @@ from interactive_trader.ibkr_app import ibkr_app
 import threading
 import time
 from datetime import datetime
-
+import statsmodels as sm
 
 # If you want different default values, configure it here.
 default_hostname = '127.0.0.1'
@@ -260,7 +260,7 @@ def get_log_return(stock): #takes in pandas dataframe
     stock['Log_Diff'] = stock['Log_Price'].diff()
     return stock
 
-def entry_signal(stock1, stock2, position_taken, threshold, allocation): # takes in pd dataframe # position taken is a boolean yes or no
+def entry_signal(stock1, stock2, stock1_symbl, stock2_symbl, position_taken, threshold, allocation): # takes in pd dataframe # position taken is a boolean yes or no
     stock1_log = get_log_return(stock1)
     stock2_log = get_log_return(stock2)
     stock1_window = stock1_log['Log_Price'][-91:-1]
@@ -284,13 +284,13 @@ def entry_signal(stock1, stock2, position_taken, threshold, allocation): # takes
     stock2_wt =  1/(1+slope)
 
     if position_taken == 0 and spread['zscore'].values[-1] > sigma *threshold and spread['zscore'].values[-2] < sigma * threshold:
-        stock1_order = ['BUY', (stock1_wt * allocation) ]
-        stock2_order = ['SELL', (stock2_wt * allocation)]
+        stock1_order = [stock1_symbl,'BUY', (stock1_wt * allocation) ] # order = signal (buy or sell) , (# of shares)
+        stock2_order = [stock2_symbl,'SELL', (stock2_wt * allocation)]
         position_taken = 1 # Long Spread
 
     elif position_taken == 0 and spread['zscore'].values[-1] < -sigma *threshold and spread['zscore'].values[-2] > -sigma * threshold:
-        stock1_order = ['SELL', (stock1_wt * allocation)]
-        stock2_order = ['BUY', (stock2_wt * allocation)]
+        stock1_order = [stock1_symbl,'SELL', (stock1_wt * allocation)]
+        stock2_order = [stock2_symbl,'BUY', (stock2_wt * allocation)]
         position_taken = -1 # Short Spread
     else:
         stock1_order = None
