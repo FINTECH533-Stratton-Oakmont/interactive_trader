@@ -5,6 +5,8 @@ import time
 from datetime import datetime
 import statsmodels as sm
 import pandas as pd
+import numpy as np
+import math
 # If you want different default values, configure it here.
 default_hostname = '127.0.0.1'
 default_port = 7497
@@ -271,7 +273,7 @@ def entry_signal(stock1, stock2, stock1_symbl, stock2_symbl, position_taken, thr
     intercept = results.params[0]
     res = results.resid  # regression residual mean of res =0 by definition
     zscore_1_2 = res / sigma
-
+    position_taken = position_taken
     spread = pd.concat([res, zscore_1_2], axis=1)
     spread = pd.concat([stock2_window, spread], axis=1)
     spread = pd.concat([stock1_window, spread], axis=1)
@@ -287,6 +289,8 @@ def entry_signal(stock1, stock2, stock1_symbl, stock2_symbl, position_taken, thr
         stock1_order = [stock1['Date'][-1],status,'ENTRY',stock1_symbl,stock1['Open'].values[-1],'BUY',size1 ] # order = signal (buy or sell) , (# of shares)
         stock2_order = [stock1['Date'][-1],status,'ENTRY',stock2_symbl,stock2['Open'].values[-1],'SELL', size2]
         position_taken = 1 # Long Spread
+        df = pd.DataFrame(stock1_order)
+        df = df.append(stock2_order)
 
     elif position_taken == 0 and spread['zscore'].values[-1] < -sigma *threshold and spread['zscore'].values[-2] > -sigma * threshold:
         size1 = np.round((stock1_wt * allocation * stock1['Open'].values[-1]))
@@ -294,38 +298,70 @@ def entry_signal(stock1, stock2, stock1_symbl, stock2_symbl, position_taken, thr
         stock1_order = [stock1['Date'][-1],status,'ENTRY',stock1_symbl,stock1['Open'].values[-1],'SELL', size1]
         stock2_order = [stock1['Date'][-1],status,'ENTRY',stock2_symbl,stock2['Open'].values[-1],'BUY', size2]
         position_taken = -1 # Short Spread
+        df = pd.DataFrame(stock1_order)
+        df = df.append(stock2_order)
     else:
-        stock1_order = None
-        stock2_order = None
+        df = 0
         position_taken = 0 # represents that there is no position taken
 
 
-    return [stock1_order,stock2_order, position_taken, spread]
+    return [df, position_taken, spread]
 
 
-def exit_signal(stock1,stock2,stock1_symbl,stock2_symbl,position_taken,)
+def exit_signal(stock1,stock2,stock1_symbl,stock2_symbl,position_taken,blotter,spread):
     status = 'FILLED'
+    position_taken = position_taken
     if position_taken == 1 and spread['zscore'].values[-1] < 0:
+        size1 = blotter['Size'][-2]
+        size2 = blotter['Size'][-1]
         stock1_order = [stock1['Date'][-1], status, 'EXIT', stock1_symbl, stock1['Open'].values[-1], 'BUY', size1]
         stock2_order = [stock1['Date'][-1], status, 'EXIT', stock2_symbl, stock2['Open'].values[-1], 'SELL', size2]
+        df = pd.DataFrame(stock1_order)
+        df = df.append(stock2_order)
+        position_taken = 0
 
 
     elif position_taken == -1 and spread['zscore'].values[-1] > 0:
+        size1 = blotter['Size'][-2]
+        size2 = blotter['Size'][-1]
         stock1_order = [stock1['Date'][-1], status, 'EXIT', stock1_symbl, stock1['Open'].values[-1], 'BUY', size1]
         stock2_order = [stock1['Date'][-1], status, 'EXIT', stock2_symbl, stock2['Open'].values[-1], 'SELL', size2]
-def order(stock1_order, stock2_order):
+        df = pd.DataFrame(stock1_order)
+        df = df.append(stock2_order)
+        position_taken = 0
+    else:
+        df = 0
+    return [df,position_taken]
 
 
 
-def backtest(csv1,csv2):
+
+def backtest(csv1,csv2, allocation, stock1_symbl, stock2_symbl):
     s1 = get_log_return(pd.read_csv(csv1))
     s2 = get_log_return(pd.read_csv(csv2))
     blotter = pd.DataFrame(columns = ['Date','Status','Trip','Symbol','Price','Action','Size'])
     position_taken = 0
-
+    threshold = 1
     N = len(s1)
+    spread = 0
     for i in range(90,N+1):
         stock1 = s1[0:i]
         stock2 = s2[0:i]
-        entry_signal()
+        output = entry_signal(stock1, stock2, stock1_symbl, stock2_symbl, position_taken, threshold, allocation)
+        spread = output[2]
+        if output[0] != 0:
+            blotter = blotter.append(output[0])
+            position_taken = output[1]
+
+        if position_taken != 0:
+            output = exit_signal(stock1,stock2,stock1_symbl,stock2_symbl,position_taken,blotter,spread)
+            if output[0] != 0:
+                blotter = blotter.append(output[0])
+                position_taken = output[1]
+
+    return [blotter]
+
+
+
+
 
