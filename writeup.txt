@@ -1,11 +1,5 @@
 Strategy:
-The strategy we will be using in our trading algorithm is a pairs trading model using a distance approach. The "distance" we are referring to is the
-difference in the z-transformed log prices between both stocks. This can also be referred to as the spread. Our strategy revolves around the assumption 
-that the log-price of the stocks we are trading exhibit mean-reverting behavior, i.e. is stationary. This means that we assume that the log-prices of these 
-stocks will eventually return to their average, and we can identify opportunities for arbitrage if one stock's log price is much higher than their average 
-and another's is much lower than their average. Based on a certain threshold, i.e., a defined number of standard deviations, we can identify opportunities
-to enter (i.e., place a trade) when the spread between the log-prices of two stocks is higher than this threshold. Once the spread has shrunk (i.e.,
-difference in log-prices between the two stocks is small), we can exit the position and close the trade. We can also close the position 
+The strategy we will be using in our trading algorithm is a pairs trading model using a distance approach. The "distance" we are referring to is the difference in the z-transformed log prices between both stocks. This can also be referred to as the spread. Our strategy revolves around the assumption  that the log-price of the stocks we are trading exhibit mean-reverting behavior, i.e. stationary. This means that we assume that the log-prices of these  stocks will eventually return to their average, and we can identify opportunities for arbitrage if one stock's log price is much higher than their average  and another's is much lower than their average. Based on a certain threshold, i.e., a defined number of standard deviations, we can identify opportunities to enter (i.e., place a trade) when the spread is higher than this threshold. Once we enter, we would buy the stock that has a log-price higher than its average and sell the stock that has a log-price lower than its average. Once the spread shrinks and is essentially 0, we can exit the position and close the trade. We can also exit the position if it has been open for too long (in our case, 90 days). Our main risk in this position is if the stock price moves away from the mean, or does the opposite of mean reversion.
 
 Code:
 Entry_Order:
