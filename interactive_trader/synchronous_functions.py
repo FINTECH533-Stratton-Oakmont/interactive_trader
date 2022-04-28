@@ -286,8 +286,8 @@ def entry_signal(stock1, stock2, stock1_symbl, stock2_symbl, position_taken, thr
     if position_taken == 0 and spread['zscore'].values[-1] > sigma *threshold and spread['zscore'].values[-2] < sigma * threshold:
         size1 = np.round((stock1_wt * allocation * stock1['Open'].values[-1]))
         size2 = np.round((stock2_wt * allocation *  stock2['Open'].values[-1]))
-        stock1_order = [stock1['Date'][-1],status,'ENTRY',stock1_symbl,stock1['Open'].values[-1],'BUY',size1 ] # order = signal (buy or sell) , (# of shares)
-        stock2_order = [stock1['Date'][-1],status,'ENTRY',stock2_symbl,stock2['Open'].values[-1],'SELL', size2]
+        stock1_order = [stock1['Date'].iloc[-1],status,'ENTRY',stock1_symbl,stock1['Open'].values[-1],'BUY',size1 ] # order = signal (buy or sell) , (# of shares)
+        stock2_order = [stock1['Date'].iloc[-1],status,'ENTRY',stock2_symbl,stock2['Open'].values[-1],'SELL', size2]
         position_taken = 1 # Long Spread
         df = pd.DataFrame(stock1_order)
         df = df.append(stock2_order)
@@ -295,13 +295,13 @@ def entry_signal(stock1, stock2, stock1_symbl, stock2_symbl, position_taken, thr
     elif position_taken == 0 and spread['zscore'].values[-1] < -sigma *threshold and spread['zscore'].values[-2] > -sigma * threshold:
         size1 = np.round((stock1_wt * allocation * stock1['Open'].values[-1]))
         size2 = np.round((stock2_wt * allocation * stock2['Open'].values[-1]))
-        stock1_order = [stock1['Date'][-1],status,'ENTRY',stock1_symbl,stock1['Open'].values[-1],'SELL', size1]
-        stock2_order = [stock1['Date'][-1],status,'ENTRY',stock2_symbl,stock2['Open'].values[-1],'BUY', size2]
+        stock1_order = [stock1['Date'].iloc[-1],status,'ENTRY',stock1_symbl,stock1['Open'].values[-1],'SELL', size1]
+        stock2_order = [stock1['Date'].iloc[-1],status,'ENTRY',stock2_symbl,stock2['Open'].values[-1],'BUY', size2]
         position_taken = -1 # Short Spread
         df = pd.DataFrame(stock1_order)
         df = df.append(stock2_order)
     else:
-        df = 0
+        df = pd.DataFrame()
         position_taken = 0 # represents that there is no position taken
 
 
@@ -314,8 +314,8 @@ def exit_signal(stock1,stock2,stock1_symbl,stock2_symbl,position_taken,blotter,s
     if position_taken == 1 and spread['zscore'].values[-1] < 0:
         size1 = blotter['Size'][-2]
         size2 = blotter['Size'][-1]
-        stock1_order = [stock1['Date'][-1], status, 'EXIT', stock1_symbl, stock1['Open'].values[-1], 'BUY', size1]
-        stock2_order = [stock1['Date'][-1], status, 'EXIT', stock2_symbl, stock2['Open'].values[-1], 'SELL', size2]
+        stock1_order = [stock1['Date'].iloc[-1], status, 'EXIT', stock1_symbl, stock1['Open'].values[-1], 'BUY', size1]
+        stock2_order = [stock1['Date'].iloc[-1], status, 'EXIT', stock2_symbl, stock2['Open'].values[-1], 'SELL', size2]
         df = pd.DataFrame(stock1_order)
         df = df.append(stock2_order)
         position_taken = 0
@@ -324,17 +324,14 @@ def exit_signal(stock1,stock2,stock1_symbl,stock2_symbl,position_taken,blotter,s
     elif position_taken == -1 and spread['zscore'].values[-1] > 0:
         size1 = blotter['Size'][-2]
         size2 = blotter['Size'][-1]
-        stock1_order = [stock1['Date'][-1], status, 'EXIT', stock1_symbl, stock1['Open'].values[-1], 'BUY', size1]
-        stock2_order = [stock1['Date'][-1], status, 'EXIT', stock2_symbl, stock2['Open'].values[-1], 'SELL', size2]
+        stock1_order = [stock1['Date'].iloc[-1], status, 'EXIT', stock1_symbl, stock1['Open'].values[-1], 'BUY', size1]
+        stock2_order = [stock1['Date'].iloc[-1], status, 'EXIT', stock2_symbl, stock2['Open'].values[-1], 'SELL', size2]
         df = pd.DataFrame(stock1_order)
         df = df.append(stock2_order)
         position_taken = 0
     else:
-        df = 0
+        df = pd.DataFrame()
     return [df,position_taken]
-
-
-
 
 def backtest(csv1,csv2, allocation, stock1_symbl, stock2_symbl):
     s1 = get_log_return(pd.read_csv(csv1))
@@ -342,20 +339,20 @@ def backtest(csv1,csv2, allocation, stock1_symbl, stock2_symbl):
     blotter = pd.DataFrame(columns = ['Date','Status','Trip','Symbol','Price','Action','Size'])
     position_taken = 0
     threshold = 1
-    N = len(s1)
+    N = len(s1.index)
     spread = 0
     for i in range(90,N+1):
         stock1 = s1[0:i]
         stock2 = s2[0:i]
         output = entry_signal(stock1, stock2, stock1_symbl, stock2_symbl, position_taken, threshold, allocation)
         spread = output[2]
-        if output[0] != 0:
+        if len(output[0].index) != 0:
             blotter = blotter.append(output[0])
             position_taken = output[1]
 
         if position_taken != 0:
             output = exit_signal(stock1,stock2,stock1_symbl,stock2_symbl,position_taken,blotter,spread)
-            if output[0] != 0:
+            if len(output[0].index) != 0:
                 blotter = blotter.append(output[0])
                 position_taken = output[1]
 
