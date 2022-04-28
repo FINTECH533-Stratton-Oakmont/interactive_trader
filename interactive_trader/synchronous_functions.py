@@ -4,7 +4,7 @@ import threading
 import time
 from datetime import datetime
 import statsmodels as sm
-
+import pandas as pd
 # If you want different default values, configure it here.
 default_hostname = '127.0.0.1'
 default_port = 7497
@@ -261,10 +261,8 @@ def get_log_return(stock): #takes in pandas dataframe
     return stock
 
 def entry_signal(stock1, stock2, stock1_symbl, stock2_symbl, position_taken, threshold, allocation): # takes in pd dataframe # position taken is a boolean yes or no
-    stock1_log = get_log_return(stock1)
-    stock2_log = get_log_return(stock2)
-    stock1_window = stock1_log['Log_Price'][-91:-1]
-    stock2_window = stock2_log['Log_Price'][-91:-1]
+    stock1_window = stock1['Log_Price'][-91:-1]
+    stock2_window = stock2['Log_Price'][-91:-1]
     stock1_window = sm.add_constant(stock1_window) # need to import statsmodels as sm
     model = sm.OLS(stock2_window, stock1_window) #OLS(y,x)
     results = model.fit()
@@ -282,15 +280,19 @@ def entry_signal(stock1, stock2, stock1_symbl, stock2_symbl, position_taken, thr
 
     stock1_wt = slope/(1+slope)
     stock2_wt =  1/(1+slope)
-
+    status = 'Filled'
     if position_taken == 0 and spread['zscore'].values[-1] > sigma *threshold and spread['zscore'].values[-2] < sigma * threshold:
-        stock1_order = [stock1_symbl,'BUY', (stock1_wt * allocation) ] # order = signal (buy or sell) , (# of shares)
-        stock2_order = [stock2_symbl,'SELL', (stock2_wt * allocation)]
+        size1 = np.round((stock1_wt * allocation * stock1['Open'].values[-1]))
+        size2 = np.round((stock2_wt * allocation *  stock2['Open'].values[-1]))
+        stock1_order = [stock1['Date'][-1],status,'ENTRY',stock1_symbl,stock1['Open'].values[-1],'BUY',size1 ] # order = signal (buy or sell) , (# of shares)
+        stock2_order = [stock1['Date'][-1],status,'ENTRY',stock2_symbl,stock2['Open'].values[-1],'SELL', size2]
         position_taken = 1 # Long Spread
 
     elif position_taken == 0 and spread['zscore'].values[-1] < -sigma *threshold and spread['zscore'].values[-2] > -sigma * threshold:
-        stock1_order = [stock1_symbl,'SELL', (stock1_wt * allocation)]
-        stock2_order = [stock2_symbl,'BUY', (stock2_wt * allocation)]
+        size1 = np.round((stock1_wt * allocation * stock1['Open'].values[-1]))
+        size2 = np.round((stock2_wt * allocation * stock2['Open'].values[-1]))
+        stock1_order = [stock1['Date'][-1],status,'ENTRY',stock1_symbl,stock1['Open'].values[-1],'SELL', size1]
+        stock2_order = [stock1['Date'][-1],status,'ENTRY',stock2_symbl,stock2['Open'].values[-1],'BUY', size2]
         position_taken = -1 # Short Spread
     else:
         stock1_order = None
@@ -298,11 +300,32 @@ def entry_signal(stock1, stock2, stock1_symbl, stock2_symbl, position_taken, thr
         position_taken = 0 # represents that there is no position taken
 
 
-    return [stock1_order,stock2_order, position_taken]
+    return [stock1_order,stock2_order, position_taken, spread]
 
 
+def exit_signal(stock1,stock2,stock1_symbl,stock2_symbl,position_taken,)
+    status = 'FILLED'
+    if position_taken == 1 and spread['zscore'].values[-1] < 0:
+        stock1_order = [stock1['Date'][-1], status, 'EXIT', stock1_symbl, stock1['Open'].values[-1], 'BUY', size1]
+        stock2_order = [stock1['Date'][-1], status, 'EXIT', stock2_symbl, stock2['Open'].values[-1], 'SELL', size2]
+
+
+    elif position_taken == -1 and spread['zscore'].values[-1] > 0:
+        stock1_order = [stock1['Date'][-1], status, 'EXIT', stock1_symbl, stock1['Open'].values[-1], 'BUY', size1]
+        stock2_order = [stock1['Date'][-1], status, 'EXIT', stock2_symbl, stock2['Open'].values[-1], 'SELL', size2]
 def order(stock1_order, stock2_order):
 
 
 
-def exit_signal()
+def backtest(csv1,csv2):
+    s1 = get_log_return(pd.read_csv(csv1))
+    s2 = get_log_return(pd.read_csv(csv2))
+    blotter = pd.DataFrame(columns = ['Date','Status','Trip','Symbol','Price','Action','Size'])
+    position_taken = 0
+
+    N = len(s1)
+    for i in range(90,N+1):
+        stock1 = s1[0:i]
+        stock2 = s2[0:i]
+        entry_signal()
+
