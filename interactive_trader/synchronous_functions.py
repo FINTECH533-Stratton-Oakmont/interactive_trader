@@ -3,10 +3,10 @@ from interactive_trader.ibkr_app import ibkr_app
 import threading
 import time
 from datetime import datetime
-import statsmodels as sm
 import pandas as pd
 import numpy as np
 import math
+import statsmodels.api as sm
 # If you want different default values, configure it here.
 default_hostname = '127.0.0.1'
 default_port = 7497
