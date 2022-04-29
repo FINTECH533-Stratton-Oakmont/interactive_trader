@@ -285,8 +285,8 @@ def entry_signal(stock1, stock2, stock1_symbl, stock2_symbl, position_taken, thr
     stock2_wt =  1/(1+slope)
     status = 'Filled'
     if position_taken == 0 and spread['zscore'].values[-1] > sigma *threshold and spread['zscore'].values[-2] < sigma * threshold:
-        size1 = np.round((stock1_wt * allocation * stock1['Open'].values[-1]))
-        size2 = np.round((stock2_wt * allocation *  stock2['Open'].values[-1]))
+        size1 = np.round(((stock1_wt * .5 * allocation) / stock1['Open'].values[-1]))
+        size2 = np.round(((stock2_wt * .5 * allocation) / stock2['Open'].values[-1]))
         stock1_order = [stock1['Date'].iloc[-1],status,'ENTRY',stock1_symbl,stock1['Open'].values[-1],'BUY',size1 ] # order = signal (buy or sell) , (# of shares)
         stock2_order = [stock1['Date'].iloc[-1],status,'ENTRY',stock2_symbl,stock2['Open'].values[-1],'SELL', size2]
         position_taken = 1 # Long Spread
@@ -295,8 +295,8 @@ def entry_signal(stock1, stock2, stock1_symbl, stock2_symbl, position_taken, thr
         df.loc[len(df)] = stock2_order
 
     elif position_taken == 0 and spread['zscore'].values[-1] < -sigma *threshold and spread['zscore'].values[-2] > -sigma * threshold:
-        size1 = np.round((stock1_wt * allocation * stock1['Open'].values[-1]))
-        size2 = np.round((stock2_wt * allocation * stock2['Open'].values[-1]))
+        size1 = np.round(((stock1_wt * .5 * allocation) / stock1['Open'].values[-1]))
+        size2 = np.round(((stock2_wt * .5 * allocation) / stock2['Open'].values[-1]))
         stock1_order = [stock1['Date'].iloc[-1],status,'ENTRY',stock1_symbl,stock1['Open'].values[-1],'SELL', size1]
         stock2_order = [stock1['Date'].iloc[-1],status,'ENTRY',stock2_symbl,stock2['Open'].values[-1],'BUY', size2]
         position_taken = -1 # Short Spread
@@ -317,8 +317,8 @@ def exit_signal(stock1,stock2,stock1_symbl,stock2_symbl,position_taken,blotter,s
     if position_taken == 1 and spread['zscore'].values[-1] < 0:
         size1 = blotter['Size'].iloc[-2]
         size2 = blotter['Size'].iloc[-1]
-        stock1_order = [stock1['Date'].iloc[-1], status, 'EXIT', stock1_symbl, stock1['Open'].values[-1], 'BUY', size1]
-        stock2_order = [stock1['Date'].iloc[-1], status, 'EXIT', stock2_symbl, stock2['Open'].values[-1], 'SELL', size2]
+        stock1_order = [stock1['Date'].iloc[-1], status, 'EXIT', stock1_symbl, stock1['Open'].values[-1], 'SELL', size1]
+        stock2_order = [stock1['Date'].iloc[-1], status, 'EXIT', stock2_symbl, stock2['Open'].values[-1], 'BUY', size2]
         df = pd.DataFrame(columns=cols)
         df.loc[len(df)] = stock1_order
         df.loc[len(df)] = stock2_order
@@ -362,7 +362,7 @@ def backtest(csv1,csv2, allocation, stock1_symbl, stock2_symbl):
                 blotter = blotter.append(output[0])
                 position_taken = output[1]
 
-    return [blotter]
+    return [blotter,spread]
 
 
 
